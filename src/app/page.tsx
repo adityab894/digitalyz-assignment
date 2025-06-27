@@ -8,6 +8,9 @@ import * as XLSX from "xlsx";
 import { validateAll, ValidationError, ValidationResult } from "../utils/validation";
 import CloseIcon from '@mui/icons-material/Close';
 import { geminiNlpFilter } from "../utils/gemini";
+import { geminiHeaderMap } from "../utils/geminiHeaderMap";
+import { geminiSuggestFix } from "../utils/geminiSuggestFix";
+import { geminiDataModifier } from "../utils/geminiDataModifier";
 
 const DATASETS = ["clients", "workers", "tasks"] as const;
 type Dataset = typeof DATASETS[number];
@@ -104,6 +107,20 @@ function highlightCell(params: GridCellParams<any>, errors: ValidationError[]) {
   return err ? { backgroundColor: "#ffebee" } : {};
 }
 
+async function handleFileUpload(file: File, dataset: Dataset) {
+  // 1. Parse just the header row
+  const headers = await extractHeadersFromFile(file); // implement this
+  const required = REQUIRED_COLS[dataset];
+
+  // 2. Get mapping from Gemini
+  const mapping = await geminiHeaderMap(headers, required);
+
+  // 3. Parse the full file, remapping columns using the mapping
+  const data = await parseFileWithMapping(file, mapping); // implement this
+
+  // 4. Continue with your normal flow (validation, display, etc.)
+}
+
 export default function Home() {
   const [tab, setTab] = useState<number>(0);
   const [files, setFiles] = useState<Partial<Record<Dataset, File>>>({});
@@ -113,21 +130,32 @@ export default function Home() {
   const [showSummary, setShowSummary] = useState<Partial<Record<Dataset, boolean>>>({ clients: true, workers: true, tasks: true });
   const [search, setSearch] = useState<string>("");
   const [filtered, setFiltered] = useState<Partial<Record<Dataset, any[]>>>({});
+  const [modifyCommand, setModifyCommand] = useState("");
 
-
-  const onDrop = useCallback((dataset: Dataset) => (acceptedFiles: File[]) => {
+  const onDrop = useCallback((dataset: Dataset) => async (acceptedFiles: File[]) => {
     if (!acceptedFiles[0]) return;
-    console.log(`Uploading ${dataset} file:`, acceptedFiles[0].name);
     setFiles((prev) => ({ ...prev, [dataset]: acceptedFiles[0] }));
-    parseFile(acceptedFiles[0], dataset).then((rows) => {
-      console.log(`Parsed ${dataset} data:`, rows);
+    const file = acceptedFiles[0];
+    if (file.name.endsWith(".csv")) {
+      const headers = await extractHeadersFromFile(file);
+      const required = REQUIRED_COLS[dataset];
+      let mapping: Record<string, string | null> = {};
+      try {
+        mapping = await geminiHeaderMap(headers, required);
+      } catch (e) {
+        alert("Gemini header mapping failed: " + e);
+        return;
+      }
+      const rows = await parseFileWithMapping(file, mapping);
       setRawData((prev) => ({ ...prev, [dataset]: rows }));
       setData((prev) => ({ ...prev, [dataset]: rows }));
-    }).catch((error) => {
-      console.error(`Error parsing ${dataset} file:`, error);
-    });
+    } else if (file.name.endsWith(".xlsx")) {
+      parseFile(file, dataset).then((rows) => {
+        setRawData((prev) => ({ ...prev, [dataset]: rows }));
+        setData((prev) => ({ ...prev, [dataset]: rows }));
+      });
+    }
   }, []);
-
 
   React.useEffect(() => {
     if (data.clients && data.workers && data.tasks &&
@@ -175,21 +203,29 @@ export default function Home() {
       }
     }
   };
-  // const handleSearch = () => {
-  //   if (!search.trim()) {
-  //     setFiltered({});
-  //     return;
-  //   }
-  //   const newFiltered: Partial<Record<Dataset, any[]>> = {};
-  //   DATASETS.forEach((ds) => {
-  //     if (data[ds]) {
-  //       newFiltered[ds] = data[ds]!.filter((row) =>
-  //         Object.values(row).some((v) => String(v).toLowerCase().includes(search.toLowerCase()))
-  //       );
-  //     }
-  //   });
-  //   setFiltered(newFiltered);
-  // };
+
+  const handleSuggestFix = async (row: any, error: string) => {
+    try {
+      const fix = await geminiSuggestFix(row, error);
+      alert("Gemini Suggestion:\n" + JSON.stringify(fix, null, 2));
+    } catch (e) {
+      alert("Gemini suggestion failed: " + e);
+    }
+  };
+
+  const handleNlpModify = async () => {
+    const ds = DATASETS[tab];
+    if (data[ds]) {
+      try {
+        const mapFn = await geminiDataModifier(modifyCommand, data[ds]!, ds) as (row: any) => any;
+        const newRows = data[ds]!.map(mapFn);
+        setData((prev) => ({ ...prev, [ds]: newRows }));
+        alert("Modification applied!");
+      } catch (e) {
+        alert("Gemini NLP modify failed: " + e);
+      }
+    }
+  };
 
   return (
     <Box sx={{ p: 2, maxWidth: 1400, mx: "auto" }}>
@@ -223,6 +259,18 @@ export default function Home() {
           <Button variant="contained" onClick={handleSearch}>Search</Button>
         </Box>
       </Paper>
+      <Paper sx={{ p: 2, mb: 2 }}>
+        <Typography variant="h6">NLP Data Modification</Typography>
+        <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+          <TextField
+            label="Type a modification command (e.g. Set all PriorityLevel to 5 for clients in group Alpha)"
+            value={modifyCommand}
+            onChange={e => setModifyCommand(e.target.value)}
+            sx={{ minWidth: 400 }}
+          />
+          <Button variant="contained" onClick={handleNlpModify}>Apply</Button>
+        </Box>
+      </Paper>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
         {DATASETS.map((ds, i) => (
           <Tab key={ds} label={FRIENDLY_NAMES[ds]} />
@@ -238,7 +286,7 @@ export default function Home() {
               </Button>
             </Box>
             <Collapse in={!!showSummary[ds]}>
-              <ValidationSummary result={validation[ds]} />
+              <ValidationSummary result={validation[ds]} data={data[ds]} onSuggestFix={handleSuggestFix} />
             </Collapse>
             <Box sx={{ height: 400, width: "100%", mt: 2 }}>
               <DataGrid
@@ -279,7 +327,7 @@ function DropzoneArea({ dataset, file, onDrop }: { dataset: Dataset, file?: File
   );
 }
 
-function ValidationSummary({ result }: { result?: ValidationResult }) {
+function ValidationSummary({ result, data, onSuggestFix }: { result?: ValidationResult, data?: any[], onSuggestFix?: (row: any, error: string) => void }) {
   const [open, setOpen] = useState(true);
   if (!result || !result.errors.length) return <Alert severity="success">No validation errors!</Alert>;
   return (
@@ -291,10 +339,51 @@ function ValidationSummary({ result }: { result?: ValidationResult }) {
       <Typography variant="subtitle2">Validation Errors ({result.errors.length})</Typography>
       <ul style={{ margin: 0, paddingLeft: 16 }}>
         {result.errors.slice(0, open ? 10 : 0).map((e, i) => (
-          <li key={i}><b>Row {e.row}</b> [{e.column}]: {e.message}</li>
+          <li key={i}>
+            <b>Row {e.row}</b> [{e.column}]: {e.message}
+            {onSuggestFix && data && data[e.row - 1] && (
+              <Button size="small" sx={{ ml: 1 }} onClick={() => onSuggestFix(data[e.row - 1], e.message)}>
+                Suggest Fix
+              </Button>
+            )}
+          </li>
         ))}
         {result.errors.length > 10 && open && <li>...and {result.errors.length - 10} more</li>}
       </ul>
     </Alert>
   );
+}
+
+function extractHeadersFromFile(file: File): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    Papa.parse(file, {
+      preview: 1,
+      complete: (results: Papa.ParseResult<any>) => {
+        resolve(results.data[0]);
+      },
+      error: reject,
+    });
+  });
+}
+
+function parseFileWithMapping(file: File, mapping: Record<string, string | null>): Promise<any[]> {
+  return new Promise((resolve, reject) => {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results: Papa.ParseResult<any>) => {
+        const data = results.data.map((row: any) => {
+          const remapped: any = {};
+          Object.entries(mapping).forEach(([uploaded, required]) => {
+            if (required && uploaded in row) {
+              remapped[required] = row[uploaded];
+            }
+          });
+          return remapped;
+        });
+        resolve(data);
+      },
+      error: reject,
+    });
+  });
 }
