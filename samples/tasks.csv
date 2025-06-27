@@ -1,0 +1,5 @@
+TaskID,TaskName,Category,Duration,RequiredSkills,PreferredPhases,MaxConcurrent
+T1,Analysis,Research,2,"SkillA","1,2",1
+T2,Development,Engineering,3,"SkillB","2,3",2
+T3,Testing,QA,1,"SkillC","1",1
+T4,Deployment,Ops,2,"SkillA;SkillC","3",1 

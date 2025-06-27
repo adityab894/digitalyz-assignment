@@ -1,0 +1,4 @@
+ClientID,ClientName,PriorityLevel,RequestedTaskIDs,GroupTag,AttributesJSON
+C1,Acme Corp,3,"T1;T2",Alpha,"{""industry"":""Finance"",""size"":100}"
+C2,Globex,5,"T3",Beta,"{""industry"":""Tech"",""size"":200}"
+C3,Initech,2,"T1;T4",Alpha,"{""industry"":""Consulting"",""size"":50}"
