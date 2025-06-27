@@ -7,6 +7,7 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { validateAll, ValidationError, ValidationResult } from "../utils/validation";
 import CloseIcon from '@mui/icons-material/Close';
+import { geminiNlpFilter } from "../utils/gemini";
 
 const DATASETS = ["clients", "workers", "tasks"] as const;
 type Dataset = typeof DATASETS[number];
@@ -153,21 +154,42 @@ export default function Home() {
     return newRow;
   };
 
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!search.trim()) {
       setFiltered({});
       return;
     }
-    const newFiltered: Partial<Record<Dataset, any[]>> = {};
-    DATASETS.forEach((ds) => {
-      if (data[ds]) {
-        newFiltered[ds] = data[ds]!.filter((row) =>
-          Object.values(row).some((v) => String(v).toLowerCase().includes(search.toLowerCase()))
-        );
+    const ds = DATASETS[tab];
+    if (data[ds]) {
+      try {
+        const sample = data[ds]?.slice(0, 3) ?? [];
+        console.log("Gemini data sample:", sample);
+        const filterFn = await geminiNlpFilter(search, sample, ds);
+        if (typeof filterFn !== "function") {
+          throw new Error("geminiNlpFilter did not return a function");
+        }
+        setFiltered({ [ds]: data[ds]!.filter((row: any, idx: number, arr: any[]) => filterFn(row, idx, arr)) });
+      } catch (e) {
+        alert("Gemini NLP search failed: " + e);
+        setFiltered({});
       }
-    });
-    setFiltered(newFiltered);
+    }
   };
+  // const handleSearch = () => {
+  //   if (!search.trim()) {
+  //     setFiltered({});
+  //     return;
+  //   }
+  //   const newFiltered: Partial<Record<Dataset, any[]>> = {};
+  //   DATASETS.forEach((ds) => {
+  //     if (data[ds]) {
+  //       newFiltered[ds] = data[ds]!.filter((row) =>
+  //         Object.values(row).some((v) => String(v).toLowerCase().includes(search.toLowerCase()))
+  //       );
+  //     }
+  //   });
+  //   setFiltered(newFiltered);
+  // };
 
   return (
     <Box sx={{ p: 2, maxWidth: 1400, mx: "auto" }}>
