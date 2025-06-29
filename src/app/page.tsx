@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useCallback } from "react";
 import { DataGrid, GridColDef, GridCellParams } from "@mui/x-data-grid";
-import { Box, Typography, Collapse, Alert, TextField, Button, Tabs, Tab, Paper, IconButton } from "@mui/material";
+import { Box, Typography, Collapse, Alert, TextField, Button, Tabs, Tab, IconButton, Card, Snackbar } from "@mui/material";
 import { useDropzone } from "react-dropzone";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
@@ -11,6 +11,10 @@ import { geminiNlpFilter } from "../utils/gemini";
 import { geminiHeaderMap } from "../utils/geminiHeaderMap";
 import { geminiSuggestFix } from "../utils/geminiSuggestFix";
 import { geminiDataModifier } from "../utils/geminiDataModifier";
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import SearchIcon from '@mui/icons-material/Search';
+import TuneIcon from '@mui/icons-material/Tune';
+import RuleIcon from '@mui/icons-material/Rule';
 
 const DATASETS = ["clients", "workers", "tasks"] as const;
 type Dataset = typeof DATASETS[number];
@@ -112,6 +116,7 @@ export default function Home() {
   const [search, setSearch] = useState<string>("");
   const [filtered, setFiltered] = useState<Partial<Record<Dataset, Record<string, unknown>[]>>>({});
   const [modifyCommand, setModifyCommand] = useState("");
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: "success" | "error" | "info" | "warning" }>({ open: false, message: "", severity: "info" });
 
   const onDrop = useCallback((dataset: Dataset) => async (acceptedFiles: File[]) => {
     if (!acceptedFiles[0]) return;
@@ -124,7 +129,7 @@ export default function Home() {
       try {
         mapping = await geminiHeaderMap(headers, required);
       } catch (e) {
-        alert("Gemini header mapping failed: " + e);
+        setSnackbar({ open: true, message: "Gemini header mapping failed: " + e, severity: "error" });
         return;
       }
       const rows = await parseFileWithMapping(file, mapping);
@@ -179,7 +184,7 @@ export default function Home() {
         }
         setFiltered({ [ds]: data[ds]!.filter((row: Record<string, unknown>, idx: number, arr: Record<string, unknown>[]) => filterFn(row, idx, arr)) });
       } catch (e) {
-        alert("Gemini NLP search failed: " + e);
+        setSnackbar({ open: true, message: "Gemini NLP search failed: " + e, severity: "error" });
         setFiltered({});
       }
     }
@@ -188,9 +193,9 @@ export default function Home() {
   const handleSuggestFix = async (row: Record<string, unknown>, error: string) => {
     try {
       const fix = await geminiSuggestFix(row, error);
-      alert("Gemini Suggestion:\n" + JSON.stringify(fix, null, 2));
+      setSnackbar({ open: true, message: "Gemini Suggestion:\n" + JSON.stringify(fix, null, 2), severity: "info" });
     } catch (e) {
-      alert("Gemini suggestion failed: " + e);
+      setSnackbar({ open: true, message: "Gemini suggestion failed: " + e, severity: "error" });
     }
   };
 
@@ -201,17 +206,17 @@ export default function Home() {
         const mapFn = await geminiDataModifier(modifyCommand, data[ds]!, ds) as (row: Record<string, unknown>) => Record<string, unknown>;
         const newRows = data[ds]!.map(mapFn);
         setData((prev) => ({ ...prev, [ds]: newRows }));
-        alert("Modification applied!");
+        setSnackbar({ open: true, message: "Modification applied!", severity: "success" });
       } catch (e) {
-        alert("Gemini NLP modify failed: " + e);
+        setSnackbar({ open: true, message: "Gemini NLP modify failed: " + e, severity: "error" });
       }
     }
   };
 
   return (
     <Box sx={{ p: 2, maxWidth: 1400, mx: "auto" }}>
-      <Typography variant="h4" gutterBottom>AI Resource Allocation Configurator</Typography>
-      <Paper sx={{ p: 2, mb: 2 }}>
+      <Typography variant="h4" color="black" gutterBottom>AI Resource Allocation Configurator</Typography>
+      <Card sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6">1. Upload Files (CSV/XLSX)</Typography>
         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
           {DATASETS.map((ds) => (
@@ -223,11 +228,15 @@ export default function Home() {
                   {rawData[ds]?.length} rows loaded
                 </Typography>
               )}
+              <Button startIcon={<CloudUploadIcon />} variant="outlined" size="small" sx={{ mt: 1 }} component="label">
+                Upload
+                <input type="file" hidden onChange={e => onDrop(ds)(Array.from(e.target.files || []))} />
+              </Button>
             </Box>
           ))}
         </Box>
-      </Paper>
-      <Paper sx={{ p: 2, mb: 2 }}>
+      </Card>
+      <Card sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6">2. Natural Language Search</Typography>
         <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
           <TextField
@@ -237,10 +246,10 @@ export default function Home() {
             onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") handleSearch(); }}
             sx={{ minWidth: 400 }}
           />
-          <Button variant="contained" onClick={handleSearch}>Search</Button>
+          <Button variant="contained" startIcon={<SearchIcon />} onClick={handleSearch}>Search</Button>
         </Box>
-      </Paper>
-      <Paper sx={{ p: 2, mb: 2 }}>
+      </Card>
+      <Card sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6">NLP Data Modification</Typography>
         <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
           <TextField
@@ -249,9 +258,9 @@ export default function Home() {
             onChange={e => setModifyCommand(e.target.value)}
             sx={{ minWidth: 400 }}
           />
-          <Button variant="contained" onClick={handleNlpModify}>Apply</Button>
+          <Button variant="contained" startIcon={<TuneIcon />} onClick={handleNlpModify}>Apply</Button>
         </Box>
-      </Paper>
+      </Card>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
         {DATASETS.map((ds) => (
           <Tab key={ds} label={FRIENDLY_NAMES[ds]} />
@@ -259,7 +268,7 @@ export default function Home() {
       </Tabs>
       {DATASETS.map((ds) => (
         <Collapse key={ds} in={tab === DATASETS.indexOf(ds)} mountOnEnter unmountOnExit>
-          <Paper sx={{ p: 2, mb: 2 }}>
+          <Card sx={{ p: 3, mb: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
               <Typography variant="h6" sx={{ flex: 1 }}>{FRIENDLY_NAMES[ds]} Data</Typography>
               <Button size="small" onClick={() => setShowSummary(s => ({ ...s, [ds]: !s[ds] }))}>
@@ -283,17 +292,27 @@ export default function Home() {
                 disableRowSelectionOnClick
               />
             </Box>
-          </Paper>
+          </Card>
         </Collapse>
       ))}
       <Box sx={{ textAlign: 'center', mt: 4, display: 'flex', gap: 2, justifyContent: 'center' }}>
-        <Button variant="contained" color="primary" href="/rules">
+        <Button variant="contained" color="primary" startIcon={<RuleIcon />} href="/rules">
           Go to Business Rules Builder
         </Button>
-        <Button variant="contained" color="success" href="/prioritization">
+        <Button variant="contained" color="success" startIcon={<TuneIcon />} href="/prioritization">
           Go to Prioritization & Weights
         </Button>
       </Box>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={5000}
+        onClose={() => setSnackbar(s => ({ ...s, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbar(s => ({ ...s, open: false }))} severity={snackbar.severity} sx={{ width: '100%' }}>
+          <pre style={{ margin: 0, fontFamily: 'inherit', whiteSpace: 'pre-wrap' }}>{snackbar.message}</pre>
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

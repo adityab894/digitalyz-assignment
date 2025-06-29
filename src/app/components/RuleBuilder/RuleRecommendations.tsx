@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Rule } from '@/store/useRulesStore';
 import { ruleAI } from '@/utils/ruleAI';
+import { Button } from '@mui/material';
 
 interface RuleRecommendationsProps {
   onRuleAccepted: (rule: Rule) => void;
@@ -105,10 +106,10 @@ const RuleRecommendations: React.FC<RuleRecommendationsProps> = ({
           <p style={{ marginBottom: '1rem', color: '#6c757d' }}>
             Let AI analyze your data and suggest relevant rules based on patterns and best practices.
           </p>
-          <button
+          <Button
             onClick={analyzeData}
             disabled={isAnalyzing}
-            style={{
+            sx={{
               padding: '0.75rem 1.5rem',
               fontSize: '1rem',
               backgroundColor: isAnalyzing ? '#6c757d' : '#28a745',
@@ -119,7 +120,7 @@ const RuleRecommendations: React.FC<RuleRecommendationsProps> = ({
             }}
           >
             {isAnalyzing ? '🔍 Analyzing Data...' : '🔍 Analyze Data for Recommendations'}
-          </button>
+          </Button>
         </div>
       ) : (
         <div>
@@ -127,9 +128,9 @@ const RuleRecommendations: React.FC<RuleRecommendationsProps> = ({
             <h4 style={{ margin: 0, color: '#28a745' }}>
               💡 Found {recommendations.length} Recommendations
             </h4>
-            <button
+            <Button
               onClick={() => setShowRecommendations(false)}
-              style={{
+              sx={{
                 padding: '0.25rem 0.75rem',
                 fontSize: '0.875rem',
                 backgroundColor: '#6c757d',
@@ -140,16 +141,16 @@ const RuleRecommendations: React.FC<RuleRecommendationsProps> = ({
               }}
             >
               Hide
-            </button>
+            </Button>
           </div>
 
           {recommendations.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem', color: '#6c757d' }}>
               <p>No more recommendations available.</p>
-              <button
+              <Button
                 onClick={handleRequestMore}
                 disabled={isAnalyzing}
-                style={{
+                sx={{
                   padding: '0.5rem 1rem',
                   fontSize: '0.875rem',
                   backgroundColor: isAnalyzing ? '#6c757d' : '#17a2b8',
@@ -160,7 +161,7 @@ const RuleRecommendations: React.FC<RuleRecommendationsProps> = ({
                 }}
               >
                 {isAnalyzing ? 'Analyzing...' : 'Request More Suggestions'}
-              </button>
+              </Button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -187,9 +188,9 @@ const RuleRecommendations: React.FC<RuleRecommendationsProps> = ({
                       </p>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
-                      <button
+                      <Button
                         onClick={() => handleAcceptRecommendation(rec)}
-                        style={{
+                        sx={{
                           padding: '0.25rem 0.75rem',
                           fontSize: '0.875rem',
                           backgroundColor: '#28a745',
@@ -200,10 +201,10 @@ const RuleRecommendations: React.FC<RuleRecommendationsProps> = ({
                         }}
                       >
                         Accept
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => handleDismissRecommendation(rec.id)}
-                        style={{
+                        sx={{
                           padding: '0.25rem 0.75rem',
                           fontSize: '0.875rem',
                           backgroundColor: '#6c757d',
@@ -214,7 +215,7 @@ const RuleRecommendations: React.FC<RuleRecommendationsProps> = ({
                         }}
                       >
                         Dismiss
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>

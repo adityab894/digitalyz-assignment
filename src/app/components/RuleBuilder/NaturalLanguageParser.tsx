@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Rule } from '@/store/useRulesStore';
 import { ruleAI } from '@/utils/ruleAI';
+import { Button } from '@mui/material';
 
 interface NaturalLanguageParserProps {
   onRuleGenerated: (rule: Rule) => void;
@@ -84,10 +85,10 @@ const NaturalLanguageParser: React.FC<NaturalLanguageParserProps> = ({
       </div>
 
       <div style={{ marginBottom: '1rem' }}>
-        <button
+        <Button
           onClick={parseNaturalLanguage}
           disabled={isProcessing || !naturalLanguageInput.trim()}
-          style={{
+          sx={{
             padding: '0.75rem 1.5rem',
             fontSize: '1rem',
             backgroundColor: isProcessing ? '#6c757d' : '#007bff',
@@ -99,7 +100,7 @@ const NaturalLanguageParser: React.FC<NaturalLanguageParserProps> = ({
           }}
         >
           {isProcessing ? '🤖 Processing...' : '✨ Generate Rule'}
-        </button>
+        </Button>
         
         {isProcessing && (
           <span style={{ color: '#6c757d', fontSize: '0.875rem' }}>
@@ -112,10 +113,10 @@ const NaturalLanguageParser: React.FC<NaturalLanguageParserProps> = ({
         <h4 style={{ marginBottom: '0.5rem', fontSize: '1rem' }}>💡 Try these examples:</h4>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
           {suggestedRules.map((suggestion, index) => (
-            <button
+            <Button
               key={index}
               onClick={() => handleSuggestionClick(suggestion)}
-              style={{
+              sx={{
                 padding: '0.5rem 0.75rem',
                 fontSize: '0.875rem',
                 backgroundColor: '#e9ecef',
@@ -127,7 +128,7 @@ const NaturalLanguageParser: React.FC<NaturalLanguageParserProps> = ({
               }}
             >
               {suggestion}
-            </button>
+            </Button>
           ))}
         </div>
       </div>

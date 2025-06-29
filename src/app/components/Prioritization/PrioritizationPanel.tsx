@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from 'react';
 import { Box, Typography, Slider, Button, Card, CardContent, Chip, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 

@@ -2,6 +2,13 @@ import React, { useState, useRef } from 'react';
 import { useRulesStore, Rule } from '@/store/useRulesStore';
 import NaturalLanguageParser from './NaturalLanguageParser';
 import RuleRecommendations from './RuleRecommendations';
+import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import FileOpenIcon from '@mui/icons-material/FileOpen';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import ClearAllIcon from '@mui/icons-material/ClearAll';
+import { Button } from "@mui/material";
 
 const RULE_TYPE_LABELS: Record<string, string> = {
   coRun: 'Co-run',
@@ -322,8 +329,9 @@ const RuleBuilder = () => {
           onChange={handleImportRules}
           style={{ display: 'none' }}
         />
-        <button
+        <Button
           onClick={() => fileInputRef.current?.click()}
+          startIcon={<FileOpenIcon />}
           style={{
             padding: '0.5rem 1rem',
             fontSize: '0.875rem',
@@ -335,9 +343,10 @@ const RuleBuilder = () => {
           }}
         >
           Import Rules
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={handleClearAllRules}
+          startIcon={<ClearAllIcon />}
           disabled={rules.length === 0}
           style={{
             padding: '0.5rem 1rem',
@@ -350,7 +359,7 @@ const RuleBuilder = () => {
           }}
         >
           Clear All Rules
-        </button>
+        </Button>
       </section>
       
       {editingIndex !== null && (
@@ -365,8 +374,9 @@ const RuleBuilder = () => {
           alignItems: 'center'
         }}>
           <span><strong>Editing Rule #{editingIndex + 1}</strong></span>
-          <button 
+          <Button 
             onClick={clearForm}
+            startIcon={<EditIcon />}
             style={{ 
               padding: '0.25rem 0.75rem', 
               fontSize: '0.875rem',
@@ -378,7 +388,7 @@ const RuleBuilder = () => {
             }}
           >
             Cancel Edit
-          </button>
+          </Button>
         </div>
       )}
 
@@ -410,7 +420,7 @@ const RuleBuilder = () => {
           <label htmlFor="rule-type">Rule Type:</label>
           <select
             id="rule-type"
-            style={{ marginLeft: '1rem', backgroundColor: 'black', color: 'white' }}
+            style={{ marginLeft: '1rem', backgroundColor: 'rgb(232, 228, 228)', color: 'black' }}
             value={selectedRuleType}
             onChange={e => {
               setSelectedRuleType(e.target.value);
@@ -442,12 +452,13 @@ const RuleBuilder = () => {
                 placeholder="e.g. T1, T2, T3"
                 style={{ width: '100%', marginTop: 8, marginBottom: 12, padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
               />
-              <button
+              <Button
                 onClick={handleAddCoRunRule}
+                startIcon={<AddIcon />}
                 style={{ padding: '0.5rem 1.5rem', fontSize: '1rem' }}
               >
                 {getButtonText('coRun')}
-              </button>
+              </Button>
             </div>
           ) : selectedRuleType === 'slotRestriction' ? (
             <div>
@@ -470,12 +481,13 @@ const RuleBuilder = () => {
                 min="1"
                 style={{ width: '100%', marginTop: 8, marginBottom: 12, padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
               />
-              <button
+              <Button
                 onClick={handleAddSlotRestrictionRule}
+                startIcon={<AddIcon />}
                 style={{ padding: '0.5rem 1.5rem', fontSize: '1rem' }}
               >
                 {getButtonText('slotRestriction')}
-              </button>
+              </Button>
             </div>
           ) : selectedRuleType === 'loadLimit' ? (
             <div>
@@ -498,12 +510,13 @@ const RuleBuilder = () => {
                 min="1"
                 style={{ width: '100%', marginTop: 8, marginBottom: 12, padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
               />
-              <button
+              <Button
                 onClick={handleAddLoadLimitRule}
+                startIcon={<AddIcon />}
                 style={{ padding: '0.5rem 1.5rem', fontSize: '1rem' }}
               >
                 {getButtonText('loadLimit')}
-              </button>
+              </Button>
             </div>
           ) : selectedRuleType === 'phaseWindow' ? (
             <div>
@@ -525,12 +538,13 @@ const RuleBuilder = () => {
                 placeholder="e.g. 1, 2, 3"
                 style={{ width: '100%', marginTop: 8, marginBottom: 12, padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
               />
-              <button
+              <Button
                 onClick={handleAddPhaseWindowRule}
+                startIcon={<AddIcon />}
                 style={{ padding: '0.5rem 1.5rem', fontSize: '1rem' }}
               >
                 {getButtonText('phaseWindow')}
-              </button>
+              </Button>
             </div>
           ) : selectedRuleType === 'patternMatch' ? (
             <div>
@@ -563,12 +577,13 @@ const RuleBuilder = () => {
                 placeholder='{"key": "value"}'
                 style={{ width: '100%', marginTop: 8, marginBottom: 12, padding: 8, borderRadius: 4, border: '1px solid #ccc', minHeight: 60 }}
               />
-              <button
+              <Button
                 onClick={handleAddPatternMatchRule}
+                startIcon={<AddIcon />}
                 style={{ padding: '0.5rem 1.5rem', fontSize: '1rem' }}
               >
                 {getButtonText('patternMatch')}
-              </button>
+              </Button>
             </div>
           ) : selectedRuleType === 'precedenceOverride' ? (
             <div>
@@ -600,12 +615,13 @@ const RuleBuilder = () => {
                 min="1"
                 style={{ width: '100%', marginTop: 8, marginBottom: 12, padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
               />
-              <button
+              <Button
                 onClick={handleAddPrecedenceOverrideRule}
+                startIcon={<AddIcon />}
                 style={{ padding: '0.5rem 1.5rem', fontSize: '1rem' }}
               >
                 {getButtonText('precedenceOverride')}
-              </button>
+              </Button>
             </div>
           ) : selectedRuleType ? (
             <strong>Selected: {RULE_TYPE_LABELS[selectedRuleType]}</strong>
@@ -642,8 +658,9 @@ const RuleBuilder = () => {
                     <code style={{ fontSize: '0.875rem' }}>{JSON.stringify(typedRule, null, 2)}</code>
                   </div>
                   <div style={{ marginLeft: 12 }}>
-                    <button
+                    <Button
                       onClick={() => handleEditRule(typedRule, idx)}
+                      startIcon={<EditIcon />}
                       style={{ 
                         padding: '0.25rem 0.75rem', 
                         fontSize: '0.875rem',
@@ -656,9 +673,10 @@ const RuleBuilder = () => {
                       }}
                     >
                       Edit
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => handleDeleteRule(idx)}
+                      startIcon={<DeleteIcon />}
                       style={{ 
                         padding: '0.25rem 0.75rem', 
                         fontSize: '0.875rem',
@@ -670,18 +688,19 @@ const RuleBuilder = () => {
                       }}
                     >
                       Delete
-                    </button>
+                    </Button>
                   </div>
                 </li>
-              );
+              )
             })
           )}
         </ul>
       </section>
 
       {/* Generate Rules Config Button */}
-      <button 
+      <Button 
         onClick={handleGenerateRulesConfig}
+        startIcon={<FileDownloadIcon />}
         disabled={rules.length === 0}
         style={{ 
           padding: '0.75rem 2rem', 
@@ -694,7 +713,7 @@ const RuleBuilder = () => {
         }}
       >
         Generate Rules Config ({rules.length} rules)
-      </button>
+      </Button>
     </div>
   );
 };
