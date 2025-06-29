@@ -11,7 +11,6 @@ import { geminiNlpFilter } from "../utils/gemini";
 import { geminiHeaderMap } from "../utils/geminiHeaderMap";
 import { geminiSuggestFix } from "../utils/geminiSuggestFix";
 import { geminiDataModifier } from "../utils/geminiDataModifier";
-import RuleBuilder from "./components/RuleBuilder/RuleBuilder";
 
 const DATASETS = ["clients", "workers", "tasks"] as const;
 type Dataset = typeof DATASETS[number];
@@ -287,7 +286,14 @@ export default function Home() {
           </Paper>
         </Collapse>
       ))}
-      <RuleBuilder />
+      <Box sx={{ textAlign: 'center', mt: 4, display: 'flex', gap: 2, justifyContent: 'center' }}>
+        <Button variant="contained" color="primary" href="/rules">
+          Go to Business Rules Builder
+        </Button>
+        <Button variant="contained" color="success" href="/prioritization">
+          Go to Prioritization & Weights
+        </Button>
+      </Box>
     </Box>
   );
 }
