@@ -6,7 +6,7 @@ export type Rule =
   | { type: 'slotRestriction'; group: string; minCommonSlots: number }
   | { type: 'loadLimit'; group: string; maxSlotsPerPhase: number }
   | { type: 'phaseWindow'; task: string; allowedPhases: number[] }
-  | { type: 'patternMatch'; regex: string; template: string; params: Record<string, any> }
+  | { type: 'patternMatch'; regex: string; template: string; params: Record<string, unknown> }
   | { type: 'precedenceOverride'; global: string[]; specific: string[]; priority: number };
 
 interface RulesState {
@@ -16,7 +16,7 @@ interface RulesState {
   deleteRule: (index: number) => void;
   clearRules: () => void;
   importRules: (rules: Rule[]) => void;
-  exportRules: () => { rules: Rule[]; metadata: any };
+  exportRules: () => { rules: Rule[]; metadata: Record<string, unknown> };
   validateRule: (rule: Rule) => { isValid: boolean; errors: string[] };
 }
 
@@ -127,7 +127,7 @@ export const useRulesStore = create<RulesState>()(
             // Validate regex syntax
             try {
               new RegExp(rule.regex);
-            } catch (e) {
+            } catch {
               errors.push('Invalid regex pattern');
             }
             break;

@@ -20,8 +20,7 @@ const RuleBuilder = () => {
     deleteRule, 
     clearRules, 
     importRules, 
-    exportRules, 
-    validateRule 
+    exportRules
   } = useRulesStore();
   
   const [selectedRuleType, setSelectedRuleType] = useState<string>('');
@@ -196,14 +195,12 @@ const RuleBuilder = () => {
       setValidationErrors(['Please select a rule template.']);
       return;
     }
-    let params: Record<string, any> = {};
-    if (patternParams.trim()) {
-      try {
-        params = JSON.parse(patternParams);
-      } catch (e) {
-        setValidationErrors(['Please enter valid JSON for parameters.']);
-        return;
-      }
+    let params: Record<string, unknown> = {};
+    try {
+      params = JSON.parse(patternParams);
+    } catch {
+      setValidationErrors(['Please enter valid JSON for parameters.']);
+      return;
     }
     handleSaveRule({ type: 'patternMatch', regex: patternRegex.trim(), template: patternTemplate.trim(), params });
   };
@@ -270,7 +267,7 @@ const RuleBuilder = () => {
         } else {
           alert('Invalid file format. Expected an array of rules or a rules configuration object.');
         }
-      } catch (error) {
+      } catch {
         alert('Error importing rules: Invalid JSON file');
       }
     };
@@ -625,56 +622,59 @@ const RuleBuilder = () => {
           {rules.length === 0 ? (
             <li><em>No rules added yet.</em></li>
           ) : (
-            rules.map((rule: any, idx: number) => (
-              <li key={idx} style={{ 
-                marginBottom: 12, 
-                padding: '12px', 
-                border: '1px solid #ddd', 
-                borderRadius: 8,
-                backgroundColor: editingIndex === idx ? '#f8f9fa' : 'white',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ flex: 1 , color: 'black'}}>
-                  <div style={{ marginBottom: 4 }}>
-                    <strong>{RULE_TYPE_LABELS[rule.type]} Rule #{idx + 1}</strong>
+            rules.map((rule: unknown, idx: number) => {
+              const typedRule = rule as Rule;
+              return (
+                <li key={idx} style={{ 
+                  marginBottom: 12, 
+                  padding: '12px', 
+                  border: '1px solid #ddd', 
+                  borderRadius: 8,
+                  backgroundColor: editingIndex === idx ? '#f8f9fa' : 'white',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div style={{ flex: 1 , color: 'black'}}>
+                    <div style={{ marginBottom: 4 }}>
+                      <strong>{RULE_TYPE_LABELS[typedRule.type]} Rule #{idx + 1}</strong>
+                    </div>
+                    <code style={{ fontSize: '0.875rem' }}>{JSON.stringify(typedRule, null, 2)}</code>
                   </div>
-                  <code style={{ fontSize: '0.875rem' }}>{JSON.stringify(rule, null, 2)}</code>
-                </div>
-                <div style={{ marginLeft: 12 }}>
-                  <button
-                    onClick={() => handleEditRule(rule, idx)}
-                    style={{ 
-                      padding: '0.25rem 0.75rem', 
-                      fontSize: '0.875rem',
-                      backgroundColor: '#007bff',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: 4,
-                      cursor: 'pointer',
-                      marginRight: 8
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteRule(idx)}
-                    style={{ 
-                      padding: '0.25rem 0.75rem', 
-                      fontSize: '0.875rem',
-                      backgroundColor: '#dc3545',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: 4,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </li>
-            ))
+                  <div style={{ marginLeft: 12 }}>
+                    <button
+                      onClick={() => handleEditRule(typedRule, idx)}
+                      style={{ 
+                        padding: '0.25rem 0.75rem', 
+                        fontSize: '0.875rem',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        marginRight: 8
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteRule(idx)}
+                      style={{ 
+                        padding: '0.25rem 0.75rem', 
+                        fontSize: '0.875rem',
+                        backgroundColor: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              );
+            })
           )}
         </ul>
       </section>

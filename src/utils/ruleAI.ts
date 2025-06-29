@@ -11,11 +11,9 @@ export class RuleAIService {
     return RuleAIService.instance;
   }
 
-  async parseNaturalLanguage(input: string, context?: any): Promise<Rule> {
+  async parseNaturalLanguage(input: string, context?: Record<string, unknown>): Promise<Rule> {
     // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const lowerInput = input.toLowerCase();
     
     // Enhanced parsing with context awareness
     if (context?.tasks) {
@@ -27,7 +25,7 @@ export class RuleAIService {
     return this.parseBasic(input);
   }
 
-  private parseWithContext(input: string, context: any): Rule {
+  private parseWithContext(input: string, context: Record<string, unknown>): Rule {
     const lowerInput = input.toLowerCase();
     
     // Co-run with context
@@ -36,7 +34,7 @@ export class RuleAIService {
       if (taskMatches && taskMatches.length >= 2) {
         // Validate tasks exist in context
         const validTasks = taskMatches.filter(taskId => 
-          context.tasks.some((t: any) => t.TaskID === taskId)
+          (context.tasks as unknown[]).some((t) => (t as Record<string, unknown>).TaskID === taskId)
         );
         if (validTasks.length >= 2) {
           return {
@@ -55,7 +53,7 @@ export class RuleAIService {
       if (groupMatch && slotMatch) {
         const groupName = groupMatch[1];
         // Validate group exists in context
-        const groupExists = context.workers.some((w: any) => w.WorkerGroup === groupName);
+        const groupExists = (context.workers as unknown[]).some((w) => (w as Record<string, unknown>).WorkerGroup === groupName);
         if (groupExists) {
           return {
             type: 'loadLimit',
@@ -172,7 +170,7 @@ export class RuleAIService {
     throw new Error('Could not understand the rule description. Please try a different format or use the structured form.');
   }
 
-  async generateRecommendations(data: any): Promise<Array<{
+  async generateRecommendations(data: Record<string, unknown>): Promise<Array<{
     id: string;
     type: Rule['type'];
     description: string;
@@ -186,19 +184,19 @@ export class RuleAIService {
     const recommendations = [];
     
     // Analyze task patterns
-    if (data.tasks && data.tasks.length > 0) {
-      const taskCategories = this.groupBy(data.tasks, 'Category');
+    if (data.tasks && Array.isArray(data.tasks) && data.tasks.length > 0) {
+      const taskCategories = this.groupBy(data.tasks as Record<string, unknown>[], 'Category');
       
       // Co-run recommendations for same category tasks
-      Object.entries(taskCategories).forEach(([category, tasks]: [string, any]) => {
+      Object.entries(taskCategories).forEach(([category, tasks]: [string, Record<string, unknown>[]]) => {
         if (tasks.length >= 2) {
           recommendations.push({
             id: `rec-${Date.now()}-${category}`,
             type: 'coRun' as const,
-            description: `${category} tasks often have dependencies. Consider co-running ${tasks.slice(0, 2).map((t: any) => t.TaskID).join(' and ')}`,
+            description: `${category} tasks often have dependencies. Consider co-running ${tasks.slice(0, 2).map((t: Record<string, unknown>) => t.TaskID).join(' and ')}`,
             rule: {
               type: 'coRun',
-              tasks: tasks.slice(0, 2).map((t: any) => t.TaskID)
+              tasks: tasks.slice(0, 2).map((t: Record<string, unknown>) => t.TaskID as string)
             },
             confidence: 0.85,
             reasoning: `Found ${tasks.length} ${category} tasks that typically have dependencies`
@@ -207,9 +205,9 @@ export class RuleAIService {
       });
       
       // Pattern matching for urgent tasks
-      const urgentTasks = data.tasks.filter((t: any) => 
-        t.TaskName.toLowerCase().includes('urgent') || 
-        t.Category === 'Development'
+      const urgentTasks = data.tasks.filter((t: Record<string, unknown>) => 
+        (t.TaskName as string).toLowerCase().includes('urgent') || 
+        (t.Category as string) === 'Development'
       );
       if (urgentTasks.length > 0) {
         recommendations.push({
@@ -217,7 +215,7 @@ export class RuleAIService {
           type: 'patternMatch' as const,
           description: 'Urgent tasks detected. Add pattern matching rule for priority handling',
           rule: {
-            type: 'patternMatch',
+            type: 'patternMatch' as const,
             regex: '.*urgent.*',
             template: 'templateA',
             params: { priority: 'high' }
@@ -229,11 +227,11 @@ export class RuleAIService {
     }
     
     // Analyze worker patterns
-    if (data.workers && data.workers.length > 0) {
-      const workerGroups = this.groupBy(data.workers, 'WorkerGroup');
+    if (data.workers && Array.isArray(data.workers) && data.workers.length > 0) {
+      const workerGroups = this.groupBy(data.workers as Record<string, unknown>[], 'WorkerGroup');
       
-      Object.entries(workerGroups).forEach(([group, workers]: [string, any]) => {
-        const avgLoad = workers.reduce((sum: number, w: any) => sum + (w.MaxLoadPerPhase || 0), 0) / workers.length;
+      Object.entries(workerGroups).forEach(([group, workers]: [string, Record<string, unknown>[]]) => {
+        const avgLoad = workers.reduce((sum: number, w: Record<string, unknown>) => sum + (w.MaxLoadPerPhase as number || 0), 0) / workers.length;
         if (avgLoad > 3) {
           recommendations.push({
             id: `rec-${Date.now()}-${group}`,
@@ -252,10 +250,10 @@ export class RuleAIService {
     }
     
     // Analyze client patterns
-    if (data.clients && data.clients.length > 0) {
-      const clientGroups = this.groupBy(data.clients, 'GroupTag');
+    if (data.clients && Array.isArray(data.clients) && data.clients.length > 0) {
+      const clientGroups = this.groupBy(data.clients as Record<string, unknown>[], 'GroupTag');
       
-      Object.entries(clientGroups).forEach(([group, clients]: [string, any]) => {
+      Object.entries(clientGroups).forEach(([group, clients]: [string, Record<string, unknown>[]]) => {
         if (group.toLowerCase().includes('premium') || group.toLowerCase().includes('vip')) {
           recommendations.push({
             id: `rec-${Date.now()}-${group}`,
@@ -276,9 +274,9 @@ export class RuleAIService {
     return recommendations;
   }
 
-  private groupBy(array: any[], key: string): Record<string, any[]> {
-    return array.reduce((groups, item) => {
-      const group = item[key];
+  private groupBy(array: Record<string, unknown>[], key: string): Record<string, Record<string, unknown>[]> {
+    return array.reduce((groups: Record<string, Record<string, unknown>[]>, item) => {
+      const group = item[key] as string;
       groups[group] = groups[group] || [];
       groups[group].push(item);
       return groups;

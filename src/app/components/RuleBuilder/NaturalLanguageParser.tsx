@@ -6,9 +6,9 @@ interface NaturalLanguageParserProps {
   onRuleGenerated: (rule: Rule) => void;
   onError: (error: string) => void;
   context?: {
-    tasks: any[];
-    workers: any[];
-    clients: any[];
+    tasks: unknown[];
+    workers: unknown[];
+    clients: unknown[];
   };
 }
 
@@ -19,7 +19,7 @@ const NaturalLanguageParser: React.FC<NaturalLanguageParserProps> = ({
 }) => {
   const [naturalLanguageInput, setNaturalLanguageInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [suggestedRules, setSuggestedRules] = useState<string[]>([
+  const [suggestedRules] = useState<string[]>([
     "Tasks T1 and T2 must run together",
     "WorkerGroup Sales can only handle 3 slots per phase",
     "Task T5 can only run in phases 1, 2, or 3",

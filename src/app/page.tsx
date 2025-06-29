@@ -1,11 +1,11 @@
 "use client";
 import React, { useState, useCallback } from "react";
-import { DataGrid, GridColDef, GridCellParams, GridRowId } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridCellParams } from "@mui/x-data-grid";
 import { Box, Typography, Collapse, Alert, TextField, Button, Tabs, Tab, Paper, IconButton } from "@mui/material";
 import { useDropzone } from "react-dropzone";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
-import { validateAll, ValidationError, ValidationResult } from "../utils/validation";
+import { validateAll, ValidationResult } from "../utils/validation";
 import CloseIcon from '@mui/icons-material/Close';
 import { geminiNlpFilter } from "../utils/gemini";
 import { geminiHeaderMap } from "../utils/geminiHeaderMap";
@@ -28,7 +28,7 @@ const FRIENDLY_NAMES: Record<Dataset, string> = {
   tasks: "Tasks",
 };
 
-function mapHeaders(row: Record<string, any>, dataset: Dataset) {
+function mapHeaders(row: Record<string, unknown>, dataset: Dataset) {
   const mapping: Record<string, string> = {};
   Object.keys(row).forEach((col) => {
     const match = REQUIRED_COLS[dataset].find(
@@ -36,14 +36,14 @@ function mapHeaders(row: Record<string, any>, dataset: Dataset) {
     );
     mapping[col] = match || col;
   });
-  const mapped: Record<string, any> = {};
+  const mapped: Record<string, unknown> = {};
   Object.entries(row).forEach(([k, v]) => {
     mapped[mapping[k]] = v;
   });
   return mapped;
 }
 
-function parseFile(file: File, dataset: Dataset): Promise<any[]> {
+function parseFile(file: File, dataset: Dataset): Promise<Record<string, unknown>[]> {
   return new Promise((resolve, reject) => {
     if (file.name.endsWith(".csv")) {
       Papa.parse(file, {
@@ -53,12 +53,12 @@ function parseFile(file: File, dataset: Dataset): Promise<any[]> {
         transform: (value: string) => value.trim(),
         quoteChar: '"',
         escapeChar: '"',
-        complete: (results: Papa.ParseResult<any>) => {
+        complete: (results: Papa.ParseResult<Record<string, unknown>>) => {
           console.log('Papa Parse results:', results);
           const data = results.data
-            .filter((row: any) => Object.keys(row).some(key => row[key] !== ''))
-            .map((row: any) => {
-              const cleanRow: any = {};
+            .filter((row: Record<string, unknown>) => Object.keys(row).some(key => row[key] !== ''))
+            .map((row: Record<string, unknown>) => {
+              const cleanRow: Record<string, unknown> = {};
               Object.keys(row).forEach(key => {
                 if (!key.startsWith('__parsed_extra')) {
                   cleanRow[key] = row[key];
@@ -69,7 +69,7 @@ function parseFile(file: File, dataset: Dataset): Promise<any[]> {
           console.log('Parsed data:', data);
           resolve(data);
         },
-        error: (error: any) => {
+        error: (error: unknown) => {
           console.error('Papa Parse error:', error);
           reject(error);
         },
@@ -81,7 +81,7 @@ function parseFile(file: File, dataset: Dataset): Promise<any[]> {
         const workbook = XLSX.read(data, { type: "array" });
         const ws = workbook.Sheets[workbook.SheetNames[0]];
         const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
-        const mapped = json.map((row: any) => mapHeaders(row, dataset));
+        const mapped = (json as unknown[]).map((row: unknown) => mapHeaders(row as Record<string, unknown>, dataset));
         resolve(mapped);
       };
       reader.onerror = reject;
@@ -92,7 +92,7 @@ function parseFile(file: File, dataset: Dataset): Promise<any[]> {
   });
 }
 
-function getColumns(dataset: Dataset, rows: any[]): GridColDef[] {
+function getColumns(dataset: Dataset, rows: Record<string, unknown>[]): GridColDef[] {
   const allKeys = Array.from(new Set(rows.flatMap((r) => Object.keys(r))));
   return allKeys.map((key) => ({
     field: key,
@@ -103,34 +103,15 @@ function getColumns(dataset: Dataset, rows: any[]): GridColDef[] {
   }));
 }
 
-function highlightCell(params: GridCellParams<any>, errors: ValidationError[]) {
-  const err = errors.find((e) => e.row === (typeof params.id === 'number' ? Number(params.id) + 1 : 0) && e.column === params.field);
-  return err ? { backgroundColor: "#ffebee" } : {};
-}
-
-async function handleFileUpload(file: File, dataset: Dataset) {
-  // 1. Parse just the header row
-  const headers = await extractHeadersFromFile(file); // implement this
-  const required = REQUIRED_COLS[dataset];
-
-  // 2. Get mapping from Gemini
-  const mapping = await geminiHeaderMap(headers, required);
-
-  // 3. Parse the full file, remapping columns using the mapping
-  const data = await parseFileWithMapping(file, mapping); // implement this
-
-  // 4. Continue with your normal flow (validation, display, etc.)
-}
-
 export default function Home() {
   const [tab, setTab] = useState<number>(0);
   const [files, setFiles] = useState<Partial<Record<Dataset, File>>>({});
-  const [rawData, setRawData] = useState<Partial<Record<Dataset, any[]>>>({});
-  const [data, setData] = useState<Partial<Record<Dataset, any[]>>>({});
+  const [rawData, setRawData] = useState<Partial<Record<Dataset, Record<string, unknown>[]>>>({});
+  const [data, setData] = useState<Partial<Record<Dataset, Record<string, unknown>[]>>>({});
   const [validation, setValidation] = useState<Partial<Record<Dataset, ValidationResult>>>({});
   const [showSummary, setShowSummary] = useState<Partial<Record<Dataset, boolean>>>({ clients: true, workers: true, tasks: true });
   const [search, setSearch] = useState<string>("");
-  const [filtered, setFiltered] = useState<Partial<Record<Dataset, any[]>>>({});
+  const [filtered, setFiltered] = useState<Partial<Record<Dataset, Record<string, unknown>[]>>>({});
   const [modifyCommand, setModifyCommand] = useState("");
 
   const onDrop = useCallback((dataset: Dataset) => async (acceptedFiles: File[]) => {
@@ -173,10 +154,10 @@ export default function Home() {
     }
   }, [data.clients, data.workers, data.tasks]);
 
-  const handleProcessRowUpdate = (dataset: Dataset) => (newRow: any, oldRow: any) => {
+  const handleProcessRowUpdate = (dataset: Dataset) => (newRow: Record<string, unknown>) => {
     setData((prev) => {
       const rows = prev[dataset]?.map((row, i) =>
-        i === newRow.id ? { ...row, ...newRow } : row
+        i === (newRow as { id: number }).id ? { ...row, ...newRow } : row
       ) || [];
       return { ...prev, [dataset]: rows };
     });
@@ -197,7 +178,7 @@ export default function Home() {
         if (typeof filterFn !== "function") {
           throw new Error("geminiNlpFilter did not return a function");
         }
-        setFiltered({ [ds]: data[ds]!.filter((row: any, idx: number, arr: any[]) => filterFn(row, idx, arr)) });
+        setFiltered({ [ds]: data[ds]!.filter((row: Record<string, unknown>, idx: number, arr: Record<string, unknown>[]) => filterFn(row, idx, arr)) });
       } catch (e) {
         alert("Gemini NLP search failed: " + e);
         setFiltered({});
@@ -205,7 +186,7 @@ export default function Home() {
     }
   };
 
-  const handleSuggestFix = async (row: any, error: string) => {
+  const handleSuggestFix = async (row: Record<string, unknown>, error: string) => {
     try {
       const fix = await geminiSuggestFix(row, error);
       alert("Gemini Suggestion:\n" + JSON.stringify(fix, null, 2));
@@ -218,7 +199,7 @@ export default function Home() {
     const ds = DATASETS[tab];
     if (data[ds]) {
       try {
-        const mapFn = await geminiDataModifier(modifyCommand, data[ds]!, ds) as (row: any) => any;
+        const mapFn = await geminiDataModifier(modifyCommand, data[ds]!, ds) as (row: Record<string, unknown>) => Record<string, unknown>;
         const newRows = data[ds]!.map(mapFn);
         setData((prev) => ({ ...prev, [ds]: newRows }));
         alert("Modification applied!");
@@ -237,7 +218,7 @@ export default function Home() {
           {DATASETS.map((ds) => (
             <Box key={ds} sx={{ minWidth: 250 }}>
               <Typography variant="subtitle1">{FRIENDLY_NAMES[ds]}</Typography>
-              <DropzoneArea dataset={ds} file={files[ds]} onDrop={onDrop(ds)} />
+              <DropzoneArea file={files[ds]} onDrop={onDrop(ds)} />
               {rawData[ds] && (
                 <Typography variant="caption" color="text.secondary">
                   {rawData[ds]?.length} rows loaded
@@ -273,12 +254,12 @@ export default function Home() {
         </Box>
       </Paper>
       <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-        {DATASETS.map((ds, i) => (
+        {DATASETS.map((ds) => (
           <Tab key={ds} label={FRIENDLY_NAMES[ds]} />
         ))}
       </Tabs>
-      {DATASETS.map((ds, i) => (
-        <Collapse key={ds} in={tab === i} mountOnEnter unmountOnExit>
+      {DATASETS.map((ds) => (
+        <Collapse key={ds} in={tab === DATASETS.indexOf(ds)} mountOnEnter unmountOnExit>
           <Paper sx={{ p: 2, mb: 2 }}>
             <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
               <Typography variant="h6" sx={{ flex: 1 }}>{FRIENDLY_NAMES[ds]} Data</Typography>
@@ -291,10 +272,10 @@ export default function Home() {
             </Collapse>
             <Box sx={{ height: 400, width: "100%", mt: 2 }}>
               <DataGrid
-                rows={(filtered[ds] ?? data[ds] ?? []).map((row, i) => ({ id: i, ...row }))}
+                rows={((filtered[ds] ?? data[ds] ?? []) as Record<string, unknown>[]).map((row, i) => ({ id: i, ...row }))}
                 columns={getColumns(ds, data[ds] ?? [])}
-                processRowUpdate={handleProcessRowUpdate(ds)}
-                getCellClassName={(params: GridCellParams<any>) =>
+                processRowUpdate={handleProcessRowUpdate(ds) as (newRow: Record<string, unknown>) => Record<string, unknown>}
+                getCellClassName={(params: GridCellParams<Record<string, unknown>>) =>
                   (validation[ds]?.errors.find(e => e.row === (typeof params.id === 'number' ? Number(params.id) + 1 : 0) && e.column === params.field)) ? "cell-error" : ""
                 }
                 sx={{
@@ -311,7 +292,7 @@ export default function Home() {
   );
 }
 
-function DropzoneArea({ dataset, file, onDrop }: { dataset: Dataset, file?: File, onDrop: (files: File[]) => void }) {
+function DropzoneArea({ file, onDrop }: { file?: File, onDrop: (files: File[]) => void }) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { "text/csv": [".csv"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"] },
@@ -329,7 +310,7 @@ function DropzoneArea({ dataset, file, onDrop }: { dataset: Dataset, file?: File
   );
 }
 
-function ValidationSummary({ result, data, onSuggestFix }: { result?: ValidationResult, data?: any[], onSuggestFix?: (row: any, error: string) => void }) {
+function ValidationSummary({ result, data, onSuggestFix }: { result?: ValidationResult, data?: Record<string, unknown>[], onSuggestFix?: (row: Record<string, unknown>, error: string) => void }) {
   const [open, setOpen] = useState(true);
   if (!result || !result.errors.length) return <Alert severity="success">No validation errors!</Alert>;
   return (
@@ -360,22 +341,22 @@ function extractHeadersFromFile(file: File): Promise<string[]> {
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
       preview: 1,
-      complete: (results: Papa.ParseResult<any>) => {
-        resolve(results.data[0]);
+      complete: (results: Papa.ParseResult<Record<string, unknown>>) => {
+        resolve(Object.keys(results.data[0]));
       },
       error: reject,
     });
   });
 }
 
-function parseFileWithMapping(file: File, mapping: Record<string, string | null>): Promise<any[]> {
+function parseFileWithMapping(file: File, mapping: Record<string, string | null>): Promise<Record<string, unknown>[]> {
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
-      complete: (results: Papa.ParseResult<any>) => {
-        const data = results.data.map((row: any) => {
-          const remapped: any = {};
+      complete: (results: Papa.ParseResult<Record<string, unknown>>) => {
+        const data = results.data.map((row: Record<string, unknown>) => {
+          const remapped: Record<string, unknown> = {};
           Object.entries(mapping).forEach(([uploaded, required]) => {
             if (required && uploaded in row) {
               remapped[required] = row[uploaded];

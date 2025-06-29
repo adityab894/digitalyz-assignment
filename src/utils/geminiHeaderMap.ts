@@ -24,7 +24,7 @@ Example output:
   // Parse JSON
   try {
     return JSON.parse(text);
-  } catch (e) {
+  } catch {
     throw new Error("Could not parse Gemini header mapping: " + text);
   }
 }

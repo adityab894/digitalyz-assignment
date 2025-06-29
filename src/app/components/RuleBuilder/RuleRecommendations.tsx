@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Rule } from '@/store/useRulesStore';
 import { ruleAI } from '@/utils/ruleAI';
 
@@ -7,9 +7,9 @@ interface RuleRecommendationsProps {
   onError: (error: string) => void;
   // Mock data for demonstration - in real app this would come from uploaded data
   mockData?: {
-    tasks: any[];
-    workers: any[];
-    clients: any[];
+    tasks: unknown[];
+    workers: unknown[];
+    clients: unknown[];
   };
 }
 
@@ -60,7 +60,7 @@ const RuleRecommendations: React.FC<RuleRecommendationsProps> = ({
       const newRecommendations = await ruleAI.generateRecommendations(sampleData);
       setRecommendations(newRecommendations);
       setShowRecommendations(true);
-    } catch (error) {
+    } catch {
       onError('Failed to analyze data for recommendations');
     } finally {
       setIsAnalyzing(false);
@@ -83,7 +83,7 @@ const RuleRecommendations: React.FC<RuleRecommendationsProps> = ({
       // Generate additional recommendations using the AI service
       const additionalRecs = await ruleAI.generateRecommendations(sampleData);
       setRecommendations(prev => [...prev, ...additionalRecs]);
-    } catch (error) {
+    } catch {
       onError('Failed to generate additional recommendations');
     } finally {
       setIsAnalyzing(false);

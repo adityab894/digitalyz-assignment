@@ -2,7 +2,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY!);
 
-export async function geminiNlpFilter(query: string, dataSample: any[], entity: string) {
+export async function geminiNlpFilter(query: string, dataSample: unknown[], entity: string) {
   const prompt = `
       You are an expert data assistant. The user will give you a natural language query about a table of ${entity} data.
       Return a JavaScript filter function (as a string) that, when applied to an array of rows, returns only the rows matching the query.
@@ -22,10 +22,9 @@ export async function geminiNlpFilter(query: string, dataSample: any[], entity: 
 
   // Try to evaluate the function directly
   try {
-    // eslint-disable-next-line no-eval
     const fn = eval('(' + text + ')');
     if (typeof fn === 'function') return fn;
-  } catch (e) {
+  } catch {
     // fallback to previous regex-based extraction if needed
   }
 

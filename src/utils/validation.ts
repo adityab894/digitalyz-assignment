@@ -10,7 +10,7 @@ export type ValidationResult = {
   summary: Record<string, number>;
 };
 
-type Row = Record<string, any>;
+type Row = Record<string, unknown>;
 
 export function validateRequiredColumns(rows: Row[], required: string[]): ValidationError[] {
   if (!rows.length) return [];
@@ -72,7 +72,7 @@ export function validateJSON(rows: Row[], col: string): ValidationError[] {
           jsonStr = jsonStr.substring(start, end);
         }
         JSON.parse(jsonStr);
-      } catch (error) {
+      } catch {
         errors.push({ row: i + 1, column: col, message: `Malformed JSON in ${col}`, type: 'error' });
       }
     }
@@ -106,7 +106,7 @@ export function validateGroupTags(rows: Row[], groupCol: string): ValidationErro
   return errors;
 }
 
-export function validateCircularGroups(rows: Row[], idCol: string, groupCol: string): ValidationError[] {
+export function validateCircularGroups(): ValidationError[] {
   return [];
 }
 
@@ -151,7 +151,7 @@ export function validateAll({ clients, workers, tasks }:{ clients: Row[], worker
     ...validateRange(clients, 'PriorityLevel', 1, 5),
     ...validateJSON(clients, 'AttributesJSON'),
     ...validateGroupTags(clients, 'GroupTag'),
-    ...validateReferences(clients, 'RequestedTaskIDs', new Set(tasks.map(t => t['TaskID'])))
+    ...validateReferences(clients, 'RequestedTaskIDs', new Set(tasks.map(t => t['TaskID'] as string)))
   ];
   const workerErrors = [
     ...validateRequiredColumns(workers, ['WorkerID', 'WorkerName', 'Skills', 'AvailableSlots', 'MaxLoadPerPhase', 'WorkerGroup', 'QualificationLevel']),
