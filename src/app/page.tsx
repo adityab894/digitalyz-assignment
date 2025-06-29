@@ -11,6 +11,7 @@ import { geminiNlpFilter } from "../utils/gemini";
 import { geminiHeaderMap } from "../utils/geminiHeaderMap";
 import { geminiSuggestFix } from "../utils/geminiSuggestFix";
 import { geminiDataModifier } from "../utils/geminiDataModifier";
+import RuleBuilder from "./components/RuleBuilder/RuleBuilder";
 
 const DATASETS = ["clients", "workers", "tasks"] as const;
 type Dataset = typeof DATASETS[number];
@@ -305,6 +306,7 @@ export default function Home() {
           </Paper>
         </Collapse>
       ))}
+      <RuleBuilder />
     </Box>
   );
 }
